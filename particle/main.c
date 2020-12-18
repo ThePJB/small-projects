@@ -76,12 +76,14 @@ typedef enum {
     NUM_PT,
 } pixel_type;
 
+int mass = {1, 100, 50};
+
 typedef struct {
 
 } pixel_properties;
 
 #define xres 640
-#define yres 480
+#define yres 480 
 
 void set_square(pixel_type *grid, int grid_w, int grid_h, int x, int y, int w, int h, pixel_type type) {
     for (int i = x; i < x + w; i++) {
@@ -136,11 +138,12 @@ int main(int argc, char** argv) {
 
             /* update */
             for (int x = 0; x < xres; x++) {
-                for (int y = yres; y > 0; y--) {
+                for (int y = yres-1; y > 0; y--) {
                     pixel_type *p, *p_below, *p_bl, *p_br, *p_l, *p_r;
+                    //printf("y %d xres %d x %d\n", y, xres, x);
                     p = &grid[y * xres + x];
                     if (*p == PT_SAND) {
-                        if (y == yres) continue;
+                        //if (y == 0) continue;
                         if (*(p_below = p + xres) == PT_AIR) {
                             *p_below = PT_SAND;
                             *p = PT_AIR;
