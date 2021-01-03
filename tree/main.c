@@ -5,6 +5,7 @@
 
 #include "ggl.h"
 #include "pnc.h"
+#include "line.h"
 #include "glad.h"
 #include "util.h"
 #include "mymath.h"
@@ -85,7 +86,7 @@ input_action handle_input(double dt, camera_3rd_person *c3p) {
     return IA_NONE;
 }
 
-void draw(gg_context *g, shader_pgm_id pgm, PNC_Mesh m, camera_3rd_person c3p) {
+void draw(gg_context *g, shader_pgm_id pgm, PNC_Mesh m, camera_3rd_person c3p, line_mesh axis, shader_pgm_id axis_pgm) {
     glClearColor(0.3, 0.5, 0.7, 1);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -107,6 +108,7 @@ void draw(gg_context *g, shader_pgm_id pgm, PNC_Mesh m, camera_3rd_person c3p) {
         glm_rad(fovx), 
         (float)g->xres / (float)g->yres, 0.1, 10000
     );
+    line_draw(axis, axis_pgm, view.raw[0], proj.raw[0]);
     pnc_draw(m, pgm, view.raw[0], proj.raw[0]);
 
     SDL_GL_SwapWindow(g->window);
@@ -122,7 +124,7 @@ PNC_Mesh do_mainmesh() {
 
     PNC_Mesh m = pnc_new();
     tree_parameters tp = tree_start((vec3s){0,0,0}, 8, green, brown);
-    tp.foliage_type = FT_CONE;
+    tp.foliage_type = FT_ELLIPSOID;
     trunk_cross_section base = (trunk_cross_section) {
         .position = {0, 0, 0},
         .axis = glms_vec3_normalize((vec3s) {rand_floatn(-rot_mag, rot_mag), 1, rand_floatn(-rot_mag, rot_mag)}),
@@ -138,7 +140,11 @@ PNC_Mesh do_mainmesh() {
 PNC_Mesh test_push_ellipsoid() {
     PNC_Mesh m = pnc_new();
 
-    pnc_push_ellipsoid(&m, (vec3s) {1, 0, 0}, (vec3s) {0,0.5,0}, (vec3s) {0, 1, 0}, 1, 0.5, 15, 15);
+    const int pc = 100;
+
+    pnc_push_ellipsoid(&m, (vec3s) {1, 0, 0}, (vec3s) {0,0,0}, (vec3s) {0, 1, 0}, 1, 0.5, pc, pc);
+    pnc_push_ellipsoid(&m, (vec3s) {0, 1, 0}, (vec3s) {-4,0,0}, (vec3s) {0, 1, 0}, 2, 1, pc, pc);
+    pnc_push_ellipsoid(&m, (vec3s) {0, 0, 1}, (vec3s) {+4,0,0}, (vec3s) {0, 1, 0}, 2, 2, pc, pc);
 
     pnc_upload(&m);
     return m;
@@ -147,9 +153,13 @@ PNC_Mesh test_push_ellipsoid() {
 int main(int argc, char** argv) {
     uint64_t frame_us = 1000000 / 60;
     gg_context *g = ggl_init("tree thing", 1280, 720);
-    shader_id vert = ggl_make_shader(g, slurp("tree.vert"), GL_VERTEX_SHADER);
-    shader_id frag = ggl_make_shader(g, slurp("tree.frag"), GL_FRAGMENT_SHADER);
+    shader_id vert = ggl_make_shader(g, slurp("shaders/tree.vert"), GL_VERTEX_SHADER);
+    shader_id frag = ggl_make_shader(g, slurp("shaders/tree.frag"), GL_FRAGMENT_SHADER);
     shader_pgm_id tree_pgm = ggl_make_shader_pgm(g, vert, frag);
+    
+    shader_id line_vert = ggl_make_shader(g, slurp("shaders/line.vert"), GL_VERTEX_SHADER);
+    shader_id line_frag = ggl_make_shader(g, slurp("shaders/line.frag"), GL_FRAGMENT_SHADER);
+    shader_pgm_id line_pgm = ggl_make_shader_pgm(g, line_vert, line_frag);
     
     // make and upload a mesh
     //PNC_Mesh m = pnc_test_mesh(); // = ...
@@ -160,9 +170,14 @@ int main(int argc, char** argv) {
     //PNC_Mesh m = example_branch_tree();
     //PNC_Mesh m = example_bottle_tree();
 
-    //PNC_Mesh m = do_mainmesh();
-    PNC_Mesh m = test_push_ellipsoid();
+    PNC_Mesh m = do_mainmesh();
+    //PNC_Mesh m = test_push_ellipsoid();
 
+    line_mesh axis = line_new();
+    line_push(&axis, (vec3s) {-1024, 0, 0}, (vec3s) {1024, 0, 0});
+    line_push(&axis, (vec3s) {0, -1024, 0}, (vec3s) {0, 1024, 0});
+    line_push(&axis, (vec3s) {0, 0, -1024}, (vec3s) {0, 0, 1024});
+    line_upload(&axis);
 
     //pnc_print_summary(m);
     //pnc_print_tris(m);
@@ -172,7 +187,7 @@ int main(int argc, char** argv) {
         .fovx = 90,
         .pitch = 0,
         .yaw = 0,
-        .target = (vec3s) {0,0.5,0},
+        .target = (vec3s) {0,0,0},
         .up = (vec3s) {0, 1, 0}
     };
 
@@ -188,7 +203,7 @@ int main(int argc, char** argv) {
             // todo - mesh & tree thing cleanup
         }
 
-        draw(g, tree_pgm, m, c3p);
+        draw(g, tree_pgm, m, c3p, axis, line_pgm);
 
         int64_t tend = get_us();
         int64_t remaining_us = tend - tstart;

@@ -378,15 +378,15 @@ void l_tree(tree_parameters *tp, trunk_cross_section tcs, float t) {
     if (t > 1) {
         tree_push_foliage(tp, (foliage) {
             .sides = 8,
-            .radius = 0.2,
+            .radius = 0.4,
             .pos_top = (vec3s) {
                 .x = tcs.position.x,
-                .y = tcs.position.y + tcs.axis.y * 0.1,
+                .y = tcs.position.y + 0.2,
                 .z = tcs.position.z,
             },
             .pos_base = (vec3s) {
                 .x = tcs.position.x,
-                .y = tcs.position.y - tcs.axis.y * 0.1,
+                .y = tcs.position.y - 0.2,
                 .z = tcs.position.z,
             }
         });
@@ -499,6 +499,7 @@ void tree_continue(tree_parameters *tp, trunk_cross_section tcs, float t) {
             vec3s new_axis = tcs.axis;
             new_axis.x += rand_floatn(-branch_range, branch_range);
             new_axis.z += rand_floatn(-branch_range, branch_range);
+            new_axis = glms_vec3_normalize(new_axis);
 
             trunk_cross_section new_cs = (trunk_cross_section) {
             //.radius = tcs.radius * 0.5,

@@ -61,9 +61,7 @@ PNC_Mesh pnc_new() {
 }
 
 void pnc_push_tri(PNC_Mesh *m, PNC_Vert v1, PNC_Vert v2, PNC_Vert v3) {
-    // problem with realloc, array gets wiped or replaced with random memory or something
     if (m->num_tris >= m->backing_length) {
-        //m->tris = realloc(m->tris, m->backing_length * 2);
         m->tris = realloc(m->tris, m->backing_length * 2 * sizeof(PNC_Tri));
         m->backing_length *= 2;
     }
@@ -177,18 +175,23 @@ void pnc_push_ellipsoid(
         float h,
         int circ_sides,
         int h_sides) {
-    
-    float dh = h / h_sides;
 
+        axis = glms_vec3_normalize(axis);
+
+        printf("pushing with center: %.2f %.2f %.2f d: %.2f h: %.2f\n", center.x, center.y, center.z, d, h);
+    
     for (int i = 0; i < h_sides; i++) {
         float theta_top = M_PI * ((float)i/h_sides);
         float theta_bot = M_PI * ((float)(i+1)/h_sides);
         
-        float r_top = sinf(theta_top) * ellipse_radius(h, d, theta_top);
-        float r_bot = sinf(theta_bot) * ellipse_radius(h, d, theta_bot);
+        float ert = ellipse_radius(h, d, theta_top);
+        float erb = ellipse_radius(h, d, theta_bot);
 
-        float dist_top = cosf(theta_top) - (h/2);
-        float dist_bot = cosf(theta_bot) - (h/2);
+        float r_top = sinf(theta_top) * ert;
+        float r_bot = sinf(theta_bot) * erb;
+
+        float dist_top = cosf(theta_top) * ert;
+        float dist_bot = cosf(theta_bot) * erb;
 
         vec3s top_pos = glms_vec3_add(center, glms_vec3_scale(axis, dist_top));
         vec3s bot_pos = glms_vec3_add(center, glms_vec3_scale(axis, dist_bot));
