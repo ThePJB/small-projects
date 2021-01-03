@@ -12,12 +12,13 @@ uniform mat4 view;
 uniform mat4 proj;
 
 void main() {
-    vec3 sun = vec3(0.1, 1, 0);
+    vec3 sun = vec3(1, 1, 0);
     gl_Position = proj * view * vec4(pos, 1);
 
-    //vec3 vert_colour = gl_Position.xyz;
-    //vert_colour = (normal + 1) / 2;
-    float sunness = dot(normal, sun);
-    vert_colour = colour * (0.7 + 0.3*sunness);
-    //vert_colour = vec3(1,0,0);
+    float diffuse = (dot(normal, sun) + 1) / 2;
+
+    const float Kd = 0.5;
+    const float Ka = 0.5;
+
+    vert_colour = colour*Ka + colour*diffuse*Kd;
 }

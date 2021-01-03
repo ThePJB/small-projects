@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <time.h>
 
+
 // todo make better
 char *slurp(const char *path) {
     char *buffer = 0;
@@ -31,4 +32,8 @@ uint64_t get_us() {
     struct timespec t;
     clock_gettime(CLOCK_MONOTONIC, &t);
     return (uint64_t)t.tv_sec * 1000000 + (uint64_t)t.tv_nsec / 1000;
+}
+
+float rand_floatn(float min, float max) {
+    return rand() / (double)RAND_MAX * (max-min) + min;
 }

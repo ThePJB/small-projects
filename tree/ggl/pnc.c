@@ -1,6 +1,7 @@
 #include "ggl.h"
 #include "pnc.h"
 #include "glad.h"
+#include "mymath.h"
 
 void pnc_upload(PNC_Mesh *m) {
     vbo pnc_vbo;
@@ -62,7 +63,8 @@ PNC_Mesh pnc_new() {
 void pnc_push_tri(PNC_Mesh *m, PNC_Vert v1, PNC_Vert v2, PNC_Vert v3) {
     // problem with realloc, array gets wiped or replaced with random memory or something
     if (m->num_tris >= m->backing_length) {
-        m->tris = realloc(m->tris, m->backing_length * 2);
+        //m->tris = realloc(m->tris, m->backing_length * 2);
+        m->tris = realloc(m->tris, m->backing_length * 2 * sizeof(PNC_Tri));
         m->backing_length *= 2;
     }
 
@@ -94,6 +96,105 @@ PNC_Mesh pnc_test_mesh() {
     pnc_push_tri(&m, v1, v2, v3);
     
     return m;
+}
+
+void pnc_push_trunc_cone(
+        PNC_Mesh *m,
+        vec3s colour, 
+        vec3s top_pos,
+        vec3s top_axis,
+        vec3s bot_pos,
+        vec3s bot_axis,
+        float r_top,
+        float r_bot,
+        int num_sides) {
+
+    float theta = 2 * M_PI / num_sides;
+
+    vec3s utop = glms_vec3_cross(top_axis, glms_vec3_cross(top_axis, (vec3s) {1,0,0}));
+    vec3s ubot = glms_vec3_cross(bot_axis, glms_vec3_cross(bot_axis, (vec3s) {1,0,0}));
+
+    for (int i = 0; i < num_sides; i++) {
+        vec3s top1 = glms_vec3_add(top_pos, glms_vec3_scale(glms_vec3_rotate(utop, i*theta, top_axis), r_top));
+        vec3s top2 = glms_vec3_add(top_pos, glms_vec3_scale(glms_vec3_rotate(utop, (i+1)*theta, top_axis), r_top));
+        
+        vec3s bot1 = glms_vec3_add(bot_pos, glms_vec3_scale(glms_vec3_rotate(ubot, i*theta, bot_axis), r_bot));
+        vec3s bot2 = glms_vec3_add(bot_pos, glms_vec3_scale(glms_vec3_rotate(ubot, (i+1)*theta, bot_axis), r_bot));
+
+        vec3s normal1 = normal_from_verts(top1, top2, bot1);
+        vec3s normal2 = normal_from_verts(top2, bot2, bot1); //should be identical
+
+        pnc_push_tri(m, 
+            (PNC_Vert) {top1, normal1, colour},
+            (PNC_Vert) {top2, normal1, colour},
+            (PNC_Vert) {bot1, normal1, colour}
+        );
+
+        pnc_push_tri(m, 
+            (PNC_Vert) {top2, normal2, colour},
+            (PNC_Vert) {bot2, normal2, colour},
+            (PNC_Vert) {bot1, normal2, colour}
+        );
+    }
+}
+
+void pnc_push_cone(
+        PNC_Mesh *m,
+        vec3s colour, 
+        vec3s top_pos,
+        //vec3s top_axis,
+        vec3s bot_pos,
+        vec3s bot_axis,
+        float r_bot,
+        int num_sides) {
+
+    float theta = 2 * M_PI / num_sides;
+
+    vec3s ubot = glms_vec3_cross(bot_axis, glms_vec3_cross(bot_axis, (vec3s) {1,0,0}));
+
+    for (int i = 0; i < num_sides; i++) {
+        vec3s bot1 = glms_vec3_add(bot_pos, glms_vec3_scale(glms_vec3_rotate(ubot, i*theta, bot_axis), r_bot));
+        vec3s bot2 = glms_vec3_add(bot_pos, glms_vec3_scale(glms_vec3_rotate(ubot, (i+1)*theta, bot_axis), r_bot));
+
+        vec3s normal1 = normal_from_verts(top_pos, bot1, bot2);
+
+        pnc_push_tri(m, 
+            (PNC_Vert) {top_pos, normal1, colour},
+            (PNC_Vert) {bot1, normal1, colour},
+            (PNC_Vert) {bot2, normal1, colour}
+        );
+    }
+}
+
+
+
+void pnc_push_ellipsoid(
+        PNC_Mesh *m,
+        vec3s colour, 
+        vec3s center,
+        vec3s axis,
+        float d,
+        float h,
+        int circ_sides,
+        int h_sides) {
+    
+    float dh = h / h_sides;
+
+    for (int i = 0; i < h_sides; i++) {
+        float theta_top = M_PI * ((float)i/h_sides);
+        float theta_bot = M_PI * ((float)(i+1)/h_sides);
+        
+        float r_top = sinf(theta_top) * ellipse_radius(h, d, theta_top);
+        float r_bot = sinf(theta_bot) * ellipse_radius(h, d, theta_bot);
+
+        float dist_top = cosf(theta_top) - (h/2);
+        float dist_bot = cosf(theta_bot) - (h/2);
+
+        vec3s top_pos = glms_vec3_add(center, glms_vec3_scale(axis, dist_top));
+        vec3s bot_pos = glms_vec3_add(center, glms_vec3_scale(axis, dist_bot));
+
+        pnc_push_trunc_cone(m, colour, top_pos, axis, bot_pos, axis, r_top, r_bot, circ_sides);
+    }
 }
 
 void pnc_print_summary(PNC_Mesh m) {

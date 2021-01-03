@@ -85,3 +85,9 @@ vec3s normal_from_verts(vec3s a, vec3s b, vec3s c) {
     vec3s bc = glms_vec3_sub(c,a);
     return glms_vec3_normalize(glms_vec3_cross(bc, ab));
 }
+
+float ellipse_radius(float a, float b, float theta) {
+    float st = sinf(theta);
+    float ct = cosf(theta);
+    return a*b / sqrtf(a*a*st*st+b*b*ct*ct);
+}
