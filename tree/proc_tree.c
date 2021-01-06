@@ -367,17 +367,19 @@ PNC_Mesh example_bottle_tree() {
 // trees seed
 // implicit lods as well
 
-void l_tree(tree_parameters *tp, trunk_cross_section tcs, float t) {
+void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, float t) {
     const float branch_range = 0.6;
     const float t_increment = 0.15;
-    const float distance = 0.4;
+    //const float distance = 0.4;
     const float up_tendency = 0.1;
     const float bi_chance = 0.5;
     const float thickness = 0.2;
 
-    if (t > 1) {
+    float distance = 0.4 + 0.1*t;
+
+    if (t < 0) {
         tree_push_foliage(tp, (foliage) {
-            .sides = 8,
+            .sides = 6,
             .radius = 0.4,
             .pos_top = (vec3s) {
                 .x = tcs.position.x,
@@ -395,8 +397,8 @@ void l_tree(tree_parameters *tp, trunk_cross_section tcs, float t) {
 
     // always bifurcate
     vec3s new_axis = tcs.axis;
-    new_axis.x += rand_floatn(-branch_range, branch_range);
-    new_axis.z += rand_floatn(-branch_range, branch_range);
+    new_axis.x += hash_floatn(seed+1234, -branch_range, branch_range);
+    new_axis.z += hash_floatn(seed+5678, -branch_range, branch_range);
     new_axis = glms_vec3_normalize(new_axis);
     vec3s opposing_new_axis = glms_vec3_rotate(new_axis, M_PI, tcs.axis);
     
@@ -405,7 +407,7 @@ void l_tree(tree_parameters *tp, trunk_cross_section tcs, float t) {
 
     // still normalized i think?
 
-    float new_radius = thickness * (1 - t);
+    float new_radius = thickness * t;
     vec3s new_pos = glms_vec3_add(tcs.position, glms_vec3_scale(new_axis, distance));
     vec3s new_opp_pos = glms_vec3_add(tcs.position, glms_vec3_scale(opposing_new_axis, distance));
 
@@ -428,13 +430,13 @@ void l_tree(tree_parameters *tp, trunk_cross_section tcs, float t) {
 
 
 
-    l_tree(tp, new_cs, t + t_increment);
-    if (rand_floatn(0, 1) < bi_chance) {
+    l_tree(hash(seed+98766), tp, new_cs, t - t_increment);
+    if (hash_floatn(seed+986482, 0, 1) < bi_chance) {
         tree_push_trunk_segment(tp, (trunk_segment) {
             .bot = tcs,
             .top = new_opp_cs
         });
-        l_tree(tp, new_opp_cs, t + t_increment);
+        l_tree(hash(seed+23489234), tp, new_opp_cs, t - t_increment);
     }
 }
 

@@ -10,132 +10,126 @@
 #include "util.h"
 #include "mymath.h"
 #include "proc_tree.h"
+#include "camera3p.h"
+
 
 typedef struct {
-    vec3s target;
-    vec3s up;
-    float distance;
-    float pitch;
-    float yaw;
-    float fovx;
-} camera_3rd_person;
+    gg_context *g;
 
-mat4s view_mat(camera_3rd_person c3p) {
-    vec3s u = (vec3s) {0,0,1};
-    
-    u = glms_vec3_rotate(u, c3p.yaw, c3p.up);
+    shader_pgm_id tree_program;
+    PNC_Mesh current_tree;
 
-    // pitch needs to rotate against right vector
-    // right is forward x up
-    vec3s forward = glms_vec3_sub(c3p.target, u);
-    vec3s right = glms_vec3_cross(forward, c3p.up);
+    shader_pgm_id line_program;
+    line_mesh axis;
 
-    u = glms_vec3_rotate(u, c3p.pitch, glms_vec3_normalize(right));
-    
-    
-    vec3s pos = glms_vec3_sub(c3p.target, glms_vec3_scale(u, c3p.distance));
-    //vec3s up = glms_vec3_rotate(c3p.up, c3p.pitch, (vec3s) {0,0,1});
-    return glms_lookat(pos, c3p.target, glms_vec3_cross(u, right));
-}
+    camera_3rd_person cam;
 
-typedef enum {
-    IA_NONE,
-    IA_QUIT,
-    IA_RESET,
-} input_action;
+    int current_tree_number;
+    float tree_t;
 
-input_action handle_input(double dt, camera_3rd_person *c3p) {
-    const float rot_speed = 3;
-    const float zoom_speed = 3;
+    bool keep_going;
+} application;
 
-    // Events
-    SDL_Event e;
-    while (SDL_PollEvent(&e) != 0) {
-        if (e.type == SDL_QUIT) return IA_QUIT;
-        if (e.type == SDL_KEYDOWN) {
-            SDL_Keycode sym = e.key.keysym.sym;
-            if (sym == SDLK_ESCAPE) {
-                return IA_QUIT;
-            } else if (sym == SDLK_r) {
-                return IA_RESET;
-            }
-        }
-    }
-
-    const uint8_t *state = SDL_GetKeyboardState(NULL);
-    if (state[SDL_SCANCODE_W]) {
-        c3p->pitch += rot_speed*dt;
-    }
-    if (state[SDL_SCANCODE_S]) {
-        c3p->pitch -= rot_speed*dt;
-    }
-    if (state[SDL_SCANCODE_A]) {
-        c3p->yaw += rot_speed*dt;
-    }
-    if (state[SDL_SCANCODE_D]) {
-        c3p->yaw -= rot_speed*dt;
-    }
-    if (state[SDL_SCANCODE_Q]) {
-        c3p->distance += zoom_speed*dt;
-    }
-    if (state[SDL_SCANCODE_E]) {
-        c3p->distance -= zoom_speed*dt;
-    }
-
-
-    return IA_NONE;
-}
-
-void draw(gg_context *g, shader_pgm_id pgm, PNC_Mesh m, camera_3rd_person c3p, line_mesh axis, shader_pgm_id axis_pgm) {
-    glClearColor(0.3, 0.5, 0.7, 1);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    //mat4s view = ...
-
-    // just looking at origin
-
-    mat4s view = view_mat(c3p);
-    /*
-        glms_lookat(
-        (vec3s) {0, 1, -1}, 
-        (vec3s) {0, 0, 0}, 
-        (vec3s) {0, 1, 0}
-    );
-    */
-
-    float fovx = 90;
-    mat4s proj = glms_perspective(
-        glm_rad(fovx), 
-        (float)g->xres / (float)g->yres, 0.1, 10000
-    );
-    line_draw(axis, axis_pgm, view.raw[0], proj.raw[0]);
-    pnc_draw(m, pgm, view.raw[0], proj.raw[0]);
-
-    SDL_GL_SwapWindow(g->window);
-}
-
-
-
-PNC_Mesh do_mainmesh() {
+PNC_Mesh do_mainmesh(int seed, float start_t) {
     vec3s green = (vec3s) {0.2, 0.6, 0.1};
     vec3s brown = (vec3s) {0.4, 0.4, 0.1};
 
     const float rot_mag = 0.5;
 
     PNC_Mesh m = pnc_new();
-    tree_parameters tp = tree_start((vec3s){0,0,0}, 8, green, brown);
+    tree_parameters tp = tree_start((vec3s){0,0,0}, 4, green, brown);
     tp.foliage_type = FT_ELLIPSOID;
     trunk_cross_section base = (trunk_cross_section) {
         .position = {0, 0, 0},
-        .axis = glms_vec3_normalize((vec3s) {rand_floatn(-rot_mag, rot_mag), 1, rand_floatn(-rot_mag, rot_mag)}),
-        .radius = rand_floatn(0.1, 0.5),
+        .axis = glms_vec3_normalize((vec3s) {
+            hash_floatn(seed+48957, -rot_mag, rot_mag),
+            1,
+            hash_floatn(seed+986123, -rot_mag, rot_mag)}),
+        .radius = hash_floatn(seed+9871234, 0.1, 0.5),
     };
     //tree_continue(&tp, base, 0);
-    l_tree(&tp, base, 0);
+    l_tree(seed, &tp, base, start_t);
     tree_push_to_mesh(&m, tp);
     pnc_upload(&m);
+    printf("Triangles: %zu\n", m.num_tris);
     return m;
 }
+
+void handle_input(double dt, application *app) {
+    const float rot_speed = 3;
+    const float zoom_speed = 3;
+
+    bool retree = false;
+
+    // Events
+    SDL_Event e;
+    while (SDL_PollEvent(&e) != 0) {
+        if (e.type == SDL_QUIT) {
+            app->keep_going = false;
+            return;
+        }
+        if (e.type == SDL_KEYDOWN) {
+            SDL_Keycode sym = e.key.keysym.sym;
+            if (sym == SDLK_ESCAPE) {
+                app->keep_going = false;
+                return;
+            } else if (sym == SDLK_h) {
+                retree = true;
+                app->current_tree_number -= 1;
+            } else if (sym == SDLK_l) {
+                retree = true;
+                app->current_tree_number += 1;
+                printf("tree %d\n", app->current_tree_number);
+            } else if (sym == SDLK_j) {
+                retree = true;
+                app->tree_t -= 0.1;
+            } else if (sym == SDLK_k) {
+                retree = true;
+                app->tree_t += 0.1;
+            }
+        }
+    }
+
+    if (retree) {
+        pnc_free_ram(app->current_tree);
+        pnc_free_vram(app->current_tree);
+        app->current_tree = do_mainmesh(app->current_tree_number, app->tree_t);
+        printf("tree %d t: %.1f\n", app->current_tree_number, app->tree_t);
+
+    }
+
+    const uint8_t *state = SDL_GetKeyboardState(NULL);
+
+    cam3p_update_held(&app->cam,
+        state[SDL_SCANCODE_W],
+        state[SDL_SCANCODE_S],
+        state[SDL_SCANCODE_A],
+        state[SDL_SCANCODE_D],
+        state[SDL_SCANCODE_Q],
+        state[SDL_SCANCODE_E],
+        rot_speed * dt,
+        zoom_speed * dt
+    );
+}
+
+void draw(application *app) {
+    glClearColor(0.3, 0.5, 0.7, 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    mat4s view = cam3p_view_mat(app->cam);
+
+    float fovx = 90;
+    mat4s proj = glms_perspective(
+        glm_rad(fovx), 
+        (float)app->g->xres / (float)app->g->yres, 0.1, 10000
+    );
+    line_draw(app->axis, app->line_program, view.raw[0], proj.raw[0]);
+    pnc_draw(app->current_tree, app->tree_program, view.raw[0], proj.raw[0]);
+
+    SDL_GL_SwapWindow(app->g->window);
+}
+
+
 
 PNC_Mesh test_push_ellipsoid() {
     PNC_Mesh m = pnc_new();
@@ -160,27 +154,14 @@ int main(int argc, char** argv) {
     shader_id line_vert = ggl_make_shader(g, slurp("shaders/line.vert"), GL_VERTEX_SHADER);
     shader_id line_frag = ggl_make_shader(g, slurp("shaders/line.frag"), GL_FRAGMENT_SHADER);
     shader_pgm_id line_pgm = ggl_make_shader_pgm(g, line_vert, line_frag);
-    
-    // make and upload a mesh
-    //PNC_Mesh m = pnc_test_mesh(); // = ...
-    //PNC_Mesh m = make_pine_tree(1, 0.1, 0, 0.05, 6, 0.2, 0.3, 0.15, 0.1);
-    //PNC_Mesh m = make_pine_tree(1, 0.06, 0, 0.05, 3, 0.2, 0.6, 0.15, 0.07);
-    //PNC_Mesh m = make_pine_tree(2, 0.4, 0, 0.05, 6, 0.25, 0.3, 0.3, 0.15);
-    
-    //PNC_Mesh m = example_branch_tree();
-    //PNC_Mesh m = example_bottle_tree();
 
-    PNC_Mesh m = do_mainmesh();
-    //PNC_Mesh m = test_push_ellipsoid();
+    PNC_Mesh m = do_mainmesh(0, 1);
 
     line_mesh axis = line_new();
     line_push(&axis, (vec3s) {-1024, 0, 0}, (vec3s) {1024, 0, 0});
     line_push(&axis, (vec3s) {0, -1024, 0}, (vec3s) {0, 1024, 0});
     line_push(&axis, (vec3s) {0, 0, -1024}, (vec3s) {0, 0, 1024});
     line_upload(&axis);
-
-    //pnc_print_summary(m);
-    //pnc_print_tris(m);
 
     camera_3rd_person c3p = {
         .distance = 2,
@@ -191,19 +172,24 @@ int main(int argc, char** argv) {
         .up = (vec3s) {0, 1, 0}
     };
 
-    bool keep_going = true;
+    application app = (application) {
+        .axis = axis,
+        .cam = c3p,
+        .current_tree = m,
+        .g = g,
+        .line_program = line_pgm,
+        .tree_program = tree_pgm,
+        .current_tree_number = 0,
+        .tree_t = 1,
+        .keep_going = true,
+    };
 
     double dt = 0;
-    while (keep_going) {
+    while (app.keep_going) {
         int64_t tstart = get_us();
-        input_action ia = handle_input(dt, &c3p);
-        keep_going = (ia != IA_QUIT);
-        if (ia == IA_RESET) {
-            m = do_mainmesh();
-            // todo - mesh & tree thing cleanup
-        }
 
-        draw(g, tree_pgm, m, c3p, axis, line_pgm);
+        handle_input(dt, &app);
+        draw(&app);
 
         int64_t tend = get_us();
         int64_t remaining_us = tend - tstart;

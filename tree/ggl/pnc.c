@@ -4,12 +4,12 @@
 #include "mymath.h"
 
 void pnc_upload(PNC_Mesh *m) {
-    vbo pnc_vbo;
+    vbo *m_vbo = &(m->vbo);
     vao *m_vao = &(m->vao);
     glGenVertexArrays(1, m_vao);
-    glGenBuffers(1, &pnc_vbo);
+    glGenBuffers(1, m_vbo);
     glBindVertexArray(m->vao);
-    glBindBuffer(GL_ARRAY_BUFFER, pnc_vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, m->vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(PNC_Tri) * m->num_tris, m->tris, GL_STATIC_DRAW);
     
     size_t offset = 0;
@@ -177,8 +177,6 @@ void pnc_push_ellipsoid(
         int h_sides) {
 
         axis = glms_vec3_normalize(axis);
-
-        printf("pushing with center: %.2f %.2f %.2f d: %.2f h: %.2f\n", center.x, center.y, center.z, d, h);
     
     for (int i = 0; i < h_sides; i++) {
         float theta_top = M_PI * ((float)i/h_sides);
@@ -219,4 +217,13 @@ void pnc_print_tris(PNC_Mesh m) {
             printf("\t\tcolour: %.2f %.2f %.2f\n", vert.colour.x, vert.colour.y, vert.colour.z);
         };
     }
+}
+
+void pnc_free_ram(PNC_Mesh m) {
+    free(m.tris);
+}
+
+void pnc_free_vram(PNC_Mesh m) {
+    glDeleteBuffers(1, &m.vbo);
+    glDeleteVertexArrays(1, &m.vao);
 }

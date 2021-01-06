@@ -30,7 +30,7 @@ void line_draw(line_mesh m, shader_pgm_id pgm, float *view, float *proj) {
     }
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
-    glLineWidth(1);
+    glLineWidth(1.0);
 
     glUseProgram(pgm);
     glUniformMatrix4fv(glGetUniformLocation(pgm, "view"), 1, GL_FALSE, view);

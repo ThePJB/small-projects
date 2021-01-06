@@ -17,6 +17,8 @@ typedef struct {
     PNC_Tri *tris;
     
     vao vao;
+    vbo vbo;
+
     bool uploaded;
 
 } PNC_Mesh;
@@ -59,5 +61,8 @@ void pnc_draw(PNC_Mesh m, shader_pgm_id pgm, float *view, float *proj);
 
 void pnc_print_summary(PNC_Mesh m);
 void pnc_print_tris(PNC_Mesh m);
+
+void pnc_free_ram(PNC_Mesh m);
+void pnc_free_vram(PNC_Mesh m);
 
 PNC_Mesh pnc_test_mesh();

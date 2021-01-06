@@ -58,7 +58,7 @@ void tree_params_free(tree_parameters *tp);
 void tree_push_to_mesh(PNC_Mesh *m, tree_parameters tp);
 
 void tree_continue(tree_parameters *tp, trunk_cross_section tcs, float t);
-void l_tree(tree_parameters *tp, trunk_cross_section tcs, float t);
+void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, float t);
 
 
 
