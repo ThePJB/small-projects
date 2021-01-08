@@ -1,5 +1,6 @@
 #include "proc_tree.h"
 #include "util.h"
+#include "mymath.h"
 
 tree_parameters tree_start(vec3s base_pos, int trunk_sides, vec3s foliage_colour, vec3s trunk_colour) {
     const int array_initial_size = 5;
@@ -359,6 +360,14 @@ PNC_Mesh example_bottle_tree() {
     return m;
 }
 
+/*
+void l_trunk(int seed, tree_parameters *tp, trunk_cross_section tcs, l_tree_params ltp, float t_trunk) {
+    const float trunk_thickness = 0.5;
+    const float branch_chance = 0.1;
+    const float trunk_dist = 0.5;
+}
+*/
+
 // looks pretty good except sometimes the trunk gets twisted
 // hard to say why that happens especially cause im not exactly sure why it doesn't twist most of the time
 // lost limbs: did it by accident but its actually kind of legit (gum trees)
@@ -367,15 +376,12 @@ PNC_Mesh example_bottle_tree() {
 // trees seed
 // implicit lods as well
 
-void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, float t) {
-    const float branch_range = 0.6;
-    const float t_increment = 0.15;
-    //const float distance = 0.4;
-    const float up_tendency = 0.1;
-    const float bi_chance = 0.5;
-    const float thickness = 0.2;
+void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, l_tree_params ltp, float t) {
+    const float trunk_branch_percentage_multiplier = 0;
+    const float trunk_fatness_multiplier = 1.5;
 
-    float distance = 0.4 + 0.1*t;
+    
+    float distance = ltp.d_const + ltp.d_linear*t;
 
     if (t < 0) {
         tree_push_foliage(tp, (foliage) {
@@ -395,19 +401,70 @@ void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, float t) {
         return;
     };
 
+    //bool trunk = t / ltp.tree_t > ltp.trunk_percentage;
+
+    float t_trunk_done = ltp.tree_t * (1 - ltp.trunk_percentage);
+    float trunk_doneness = remap(ltp.tree_t, ltp.tree_t * (1 - ltp.trunk_percentage), 1, 0, t);
+    
+    bool trunk = trunk_doneness > 0;
+
+    if (trunk) {
+        vec3s new_axis = tcs.axis;
+        new_axis.x += hash_floatn(seed+1234, -ltp.branch_range/4, ltp.branch_range/4);
+        new_axis.z += hash_floatn(seed+5678, -ltp.branch_range/4, ltp.branch_range/4);
+        new_axis = glms_vec3_normalize(new_axis);  
+        new_axis = glms_vec3_lerp(new_axis, (vec3s){0,1,0}, ltp.up_tendency * 2);
+
+        float new_radius = trunk_fatness_multiplier * ltp.thickness * trunk_doneness + (ltp.thickness * t_trunk_done);      
+        vec3s new_pos = glms_vec3_add(tcs.position, glms_vec3_scale(new_axis, distance));
+        trunk_cross_section new_cs = (trunk_cross_section) {
+            .position = new_pos,
+            .radius = new_radius,
+            .axis = new_axis,
+        };
+        tree_push_trunk_segment(tp, (trunk_segment) {
+            .bot = tcs,
+            .top = new_cs
+        });
+        l_tree(hash(seed+98766), tp, new_cs, ltp, t - ltp.t_increment);
+
+        // branches?
+        if (hash_floatn(seed+986482, 0, 1) < trunk_branch_percentage_multiplier * ltp.branch_keep_chance * (1 - trunk_doneness)) {
+            float angle = hash_floatn(seed+320981234, 0, 2*M_PI);
+            vec3s angle_vec = (vec3s) {cosf(angle), 0, sinf(angle)};
+            vec3s new_axis = glms_vec3_cross(angle_vec, tcs.axis);
+            new_axis = glms_vec3_normalize(new_axis);
+            vec3s new_pos = glms_vec3_add(tcs.position, glms_vec3_scale(new_axis, distance));
+            trunk_cross_section new_cs = (trunk_cross_section) {
+                .axis = new_axis,
+                .position = new_pos,
+                .radius = t_trunk_done * ltp.thickness,
+            };
+            tree_push_trunk_segment(tp, (trunk_segment) {
+                .bot = tcs,
+                .top = new_cs,
+            });
+            
+            l_tree(hash(seed+23489234), tp, new_cs, ltp, t_trunk_done);
+        }
+        return;
+    }
+
+
+
     // always bifurcate
     vec3s new_axis = tcs.axis;
-    new_axis.x += hash_floatn(seed+1234, -branch_range, branch_range);
-    new_axis.z += hash_floatn(seed+5678, -branch_range, branch_range);
+    new_axis.x += hash_floatn(seed+1234, -ltp.branch_range, ltp.branch_range);
+    new_axis.z += hash_floatn(seed+5678, -ltp.branch_range, ltp.branch_range);
     new_axis = glms_vec3_normalize(new_axis);
     vec3s opposing_new_axis = glms_vec3_rotate(new_axis, M_PI, tcs.axis);
     
-    new_axis = glms_vec3_lerp(new_axis, (vec3s){0,1,0}, up_tendency);
-    opposing_new_axis = glms_vec3_lerp(opposing_new_axis, (vec3s){0,1,0}, up_tendency);
+    new_axis = glms_vec3_lerp(new_axis, (vec3s){0,1,0}, ltp.up_tendency);
+    opposing_new_axis = glms_vec3_lerp(opposing_new_axis, (vec3s){0,1,0}, ltp.up_tendency);
 
     // still normalized i think?
 
-    float new_radius = thickness * t;
+    float new_radius = ltp.thickness * t;
     vec3s new_pos = glms_vec3_add(tcs.position, glms_vec3_scale(new_axis, distance));
     vec3s new_opp_pos = glms_vec3_add(tcs.position, glms_vec3_scale(opposing_new_axis, distance));
 
@@ -430,13 +487,13 @@ void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, float t) {
 
 
 
-    l_tree(hash(seed+98766), tp, new_cs, t - t_increment);
-    if (hash_floatn(seed+986482, 0, 1) < bi_chance) {
+    l_tree(hash(seed+98766), tp, new_cs, ltp, t - ltp.t_increment);
+    if (hash_floatn(seed+986482, 0, 1) < ltp.branch_keep_chance) {
         tree_push_trunk_segment(tp, (trunk_segment) {
             .bot = tcs,
             .top = new_opp_cs
         });
-        l_tree(hash(seed+23489234), tp, new_opp_cs, t - t_increment);
+        l_tree(hash(seed+23489234), tp, new_opp_cs, ltp, t - ltp.t_increment);
     }
 }
 

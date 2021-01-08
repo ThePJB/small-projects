@@ -1,5 +1,7 @@
 bugs:
  - twisty boys
+    maybe a negative gradient thing
+    or maybe if the thing comes out at too much of an angle it has no choice but to twist
 
 ---
 
@@ -40,3 +42,12 @@ probably better to get an implicit method
 maybe want to limit branching. right now it gives it a really fat tail
 
 ----------
+
+so the trunk thing is quite high value as far as stopping branches, looks good,
+perpendicular branches work but can look a bit shit plus breaks rng. maybe fixable with a simple order change.
+
+probably still some good L system stuff worth mining
+
+could do more sophisticated branching too, like perp branch math works. might fix twisty boys to do that + explicit angle
+
+could do some presets

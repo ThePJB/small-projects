@@ -49,6 +49,18 @@ typedef struct {
     foliage_type foliage_type;
 } tree_parameters;
 
+typedef struct {
+    float tree_t;
+    float branch_keep_chance;
+    float d_const;
+    float d_linear;
+    float up_tendency;
+    float branch_range;
+    float t_increment;
+    float thickness;
+    float trunk_percentage;
+} l_tree_params;
+
 tree_parameters tree_start(vec3s base_pos, int trunk_sides, vec3s foliage_colour, vec3s trunk_colour);
 
 void tree_push_trunk_segment(tree_parameters *tp, trunk_segment ts);
@@ -58,7 +70,7 @@ void tree_params_free(tree_parameters *tp);
 void tree_push_to_mesh(PNC_Mesh *m, tree_parameters tp);
 
 void tree_continue(tree_parameters *tp, trunk_cross_section tcs, float t);
-void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, float t);
+void l_tree(int seed, tree_parameters *tp, trunk_cross_section tcs, l_tree_params ltp, float t);
 
 
 

@@ -11,7 +11,8 @@
 #include "mymath.h"
 #include "proc_tree.h"
 #include "camera3p.h"
-
+#include "text.h"
+#include "menu.h"
 
 typedef struct {
     gg_context *g;
@@ -25,12 +26,15 @@ typedef struct {
     camera_3rd_person cam;
 
     int current_tree_number;
-    float tree_t;
 
     bool keep_going;
+
+    l_tree_params ltp;
+
+    menu tree_settings_menu;
 } application;
 
-PNC_Mesh do_mainmesh(int seed, float start_t) {
+PNC_Mesh make_l_tree(int seed, l_tree_params ltp) {
     vec3s green = (vec3s) {0.2, 0.6, 0.1};
     vec3s brown = (vec3s) {0.4, 0.4, 0.1};
 
@@ -48,7 +52,7 @@ PNC_Mesh do_mainmesh(int seed, float start_t) {
         .radius = hash_floatn(seed+9871234, 0.1, 0.5),
     };
     //tree_continue(&tp, base, 0);
-    l_tree(seed, &tp, base, start_t);
+    l_tree(seed, &tp, base, ltp, ltp.tree_t);
     tree_push_to_mesh(&m, tp);
     pnc_upload(&m);
     printf("Triangles: %zu\n", m.num_tris);
@@ -73,19 +77,28 @@ void handle_input(double dt, application *app) {
             if (sym == SDLK_ESCAPE) {
                 app->keep_going = false;
                 return;
-            } else if (sym == SDLK_h) {
+            } else if (sym == SDLK_u) {
                 retree = true;
                 app->current_tree_number -= 1;
-            } else if (sym == SDLK_l) {
+                printf("tree %d\n", app->current_tree_number);
+            } else if (sym == SDLK_i) {
                 retree = true;
                 app->current_tree_number += 1;
                 printf("tree %d\n", app->current_tree_number);
+
+
+            } else if (sym == SDLK_h) {
+                menu_update(&app->tree_settings_menu, MD_LEFT);
+                retree = true;
+            } else if (sym == SDLK_l) {
+                menu_update(&app->tree_settings_menu, MD_RIGHT);
+                retree = true;
             } else if (sym == SDLK_j) {
+                menu_update(&app->tree_settings_menu, MD_DOWN);
                 retree = true;
-                app->tree_t -= 0.1;
             } else if (sym == SDLK_k) {
+                menu_update(&app->tree_settings_menu, MD_UP);
                 retree = true;
-                app->tree_t += 0.1;
             }
         }
     }
@@ -93,9 +106,8 @@ void handle_input(double dt, application *app) {
     if (retree) {
         pnc_free_ram(app->current_tree);
         pnc_free_vram(app->current_tree);
-        app->current_tree = do_mainmesh(app->current_tree_number, app->tree_t);
-        printf("tree %d t: %.1f\n", app->current_tree_number, app->tree_t);
-
+        app->current_tree = make_l_tree(app->current_tree_number, app->ltp);
+        printf("tree %d\n", app->current_tree_number);
     }
 
     const uint8_t *state = SDL_GetKeyboardState(NULL);
@@ -123,30 +135,22 @@ void draw(application *app) {
         glm_rad(fovx), 
         (float)app->g->xres / (float)app->g->yres, 0.1, 10000
     );
+
+    menu_draw(&app->tree_settings_menu, 10, 100);
+
     line_draw(app->axis, app->line_program, view.raw[0], proj.raw[0]);
     pnc_draw(app->current_tree, app->tree_program, view.raw[0], proj.raw[0]);
+
+
 
     SDL_GL_SwapWindow(app->g->window);
 }
 
-
-
-PNC_Mesh test_push_ellipsoid() {
-    PNC_Mesh m = pnc_new();
-
-    const int pc = 100;
-
-    pnc_push_ellipsoid(&m, (vec3s) {1, 0, 0}, (vec3s) {0,0,0}, (vec3s) {0, 1, 0}, 1, 0.5, pc, pc);
-    pnc_push_ellipsoid(&m, (vec3s) {0, 1, 0}, (vec3s) {-4,0,0}, (vec3s) {0, 1, 0}, 2, 1, pc, pc);
-    pnc_push_ellipsoid(&m, (vec3s) {0, 0, 1}, (vec3s) {+4,0,0}, (vec3s) {0, 1, 0}, 2, 2, pc, pc);
-
-    pnc_upload(&m);
-    return m;
-}
-
 int main(int argc, char** argv) {
     uint64_t frame_us = 1000000 / 60;
-    gg_context *g = ggl_init("tree thing", 1280, 720);
+    gg_context *g = ggl_init("tree thing", 1920, 1080);
+    text_init(g);
+
     shader_id vert = ggl_make_shader(g, slurp("shaders/tree.vert"), GL_VERTEX_SHADER);
     shader_id frag = ggl_make_shader(g, slurp("shaders/tree.frag"), GL_FRAGMENT_SHADER);
     shader_pgm_id tree_pgm = ggl_make_shader_pgm(g, vert, frag);
@@ -155,7 +159,6 @@ int main(int argc, char** argv) {
     shader_id line_frag = ggl_make_shader(g, slurp("shaders/line.frag"), GL_FRAGMENT_SHADER);
     shader_pgm_id line_pgm = ggl_make_shader_pgm(g, line_vert, line_frag);
 
-    PNC_Mesh m = do_mainmesh(0, 1);
 
     line_mesh axis = line_new();
     line_push(&axis, (vec3s) {-1024, 0, 0}, (vec3s) {1024, 0, 0});
@@ -172,17 +175,45 @@ int main(int argc, char** argv) {
         .up = (vec3s) {0, 1, 0}
     };
 
+    menu menu = menu_new();
+
     application app = (application) {
         .axis = axis,
         .cam = c3p,
-        .current_tree = m,
         .g = g,
         .line_program = line_pgm,
         .tree_program = tree_pgm,
         .current_tree_number = 0,
-        .tree_t = 1,
         .keep_going = true,
+
+        .ltp = (l_tree_params) {
+            .tree_t = 1.0,
+            .branch_keep_chance = 0.5,
+            .d_const = 0.4,
+            .d_linear = 0.1,
+            .up_tendency = 0.1,
+            .branch_range = 0.6,
+            .t_increment = 0.15,
+            .thickness = 0.2,
+            .trunk_percentage = 0.6,
+        },
+
+        .tree_settings_menu = menu,
     };
+
+    app.current_tree = make_l_tree(0, app.ltp);
+
+
+    menu_push(&app.tree_settings_menu, "t", &app.ltp.tree_t, 0, 4, 0.1);
+    menu_push(&app.tree_settings_menu, "thickness", &app.ltp.thickness, 0, 1, 0.02);
+    menu_push(&app.tree_settings_menu, "trunk percent", &app.ltp.trunk_percentage, 0, 1, 0.05);
+    menu_push(&app.tree_settings_menu, "branch %", &app.ltp.branch_keep_chance, 0, 1, 0.05);
+    menu_push(&app.tree_settings_menu, "upness", &app.ltp.up_tendency, 0, 1, 0.05);
+    menu_push(&app.tree_settings_menu, "d const", &app.ltp.d_const, 0, 1, 0.05);
+    menu_push(&app.tree_settings_menu, "d linear", &app.ltp.d_linear, 0, 1, 0.05);
+    menu_push(&app.tree_settings_menu, "branch dev range", &app.ltp.branch_range, 0, 1.5, 0.05);
+    menu_push(&app.tree_settings_menu, "t inc", &app.ltp.t_increment, 0.01, 0.5, 0.01);
+    
 
     double dt = 0;
     while (app.keep_going) {

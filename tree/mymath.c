@@ -91,3 +91,11 @@ float ellipse_radius(float a, float b, float theta) {
     float ct = cosf(theta);
     return a*b / sqrtf(a*a*st*st+b*b*ct*ct);
 }
+
+float unlerp(float a, float b, float t) {
+    return (t - a) / (b - a);
+}
+
+float remap(float prev_lower, float prev_upper, float new_lower, float new_upper, float a) {
+    return lerp(new_lower, new_upper, unlerp(prev_lower, prev_upper, a));
+}
