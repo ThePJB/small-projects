@@ -42,6 +42,17 @@ void gef_load_atlas(gef_context *gc, char *path) {
     if (gc->atlas == NULL) gef_die(gc, "couldn't create texture");
     SDL_FreeSurface(loaded_surface);
 }
+
+void gef_draw_rect(gef_context *gc, SDL_Rect to_rect, int r, int g, int b) {
+    SDL_SetRenderDrawColor(gc->renderer, r, g, b, 255);
+    SDL_RenderFillRect(gc->renderer, &to_rect);
+}
+
+void gef_draw_line(gef_context *gc, int x1, int y1, int x2, int y2, int r, int g, int b) {
+    SDL_SetRenderDrawColor(gc->renderer, r, g, b, 255);
+    SDL_RenderDrawLine(gc->renderer, x1, y1, x2, y2);
+}
+
 void gef_draw_sprite(gef_context *gc, SDL_Rect clip, SDL_Rect to_rect) {
     SDL_RenderCopy(gc->renderer, gc->atlas, &clip, &to_rect);
 }

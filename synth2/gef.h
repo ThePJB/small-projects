@@ -19,6 +19,8 @@ typedef struct {
 gef_context gef_init(char *name, int xres, int yres, int frame_cap);
 void gef_load_atlas(gef_context *cg, char *path);
 void gef_draw_sprite(gef_context *cg, SDL_Rect clip, SDL_Rect to_rect);
+void gef_draw_rect(gef_context *gc, SDL_Rect to_rect, int r, int g, int b);
+void gef_draw_line(gef_context *gc, int x1, int y1, int x2, int y2, int r, int g, int b);
 void gef_teardown(gef_context *gc);
 
 void gef_start_frame(gef_context *gc);

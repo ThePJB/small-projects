@@ -20,7 +20,10 @@ void application_handle_input(application *app) {
 }
 
 void application_draw(application *app) {
-    
+    gef_set_colour(&app->gc, 0, 0, 0, 255);
+    gef_clear(&app->gc);
+    module_manager_draw(&app->mm, &app->gc);
+    gef_present(&app->gc);
 }
 
 void application_init(application *app) {

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <stdint.h>
+#include <SDL.h>
 #include "portaudio.h"
+#include "gef.h"
 
 #define CHUNK_SIZE 100
 #define MAX_MODULES 32
@@ -21,6 +23,7 @@ typedef enum {
     MT_NONE,
     MT_SINK,
     MT_SINE,
+    MT_GATE,
 } module_type;
 
 struct module; 
@@ -28,8 +31,8 @@ struct module_manager;
 
 typedef struct module {
     module_type mt;
-    int max_connections; // suspect not useful
-    void (*get_audio)(struct module *m, struct module_manager *mm, float *data); // suspect takes module *m
+    SDL_Rect position;
+    void (*get_audio)(struct module_manager *mm, int m_index, float *data);
     union {
         mod_sine sine;
     };
@@ -51,6 +54,7 @@ typedef struct module_manager {
 module_manager module_manager_init(uint32_t sample_rate);
 void module_manager_connect(module_manager *mm, int parent, int child, int index);
 void module_manager_get_audio(module_manager *mm, int parent, int connection_number, float *buf);
+void module_manager_draw(module_manager *mm, gef_context *gc);
 
 int module_manager_rt_callback(
         const void *input_buffer_vp, 

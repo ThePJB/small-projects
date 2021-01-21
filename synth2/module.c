@@ -3,6 +3,8 @@
 #include <math.h>
 #include "module.h"
 #include "sine.h"
+#include "gate.h"
+#include "gef.h"
 
 int module_manager_rt_callback(
         const void *input_buffer_vp, 
@@ -23,10 +25,16 @@ int module_manager_rt_callback(
 
 module_manager module_manager_init(uint32_t sample_rate) {
     module_manager mm = {0};
+    memset(mm.child_connections, -1, sizeof(mm.child_connections));
     mm.sample_rate = sample_rate;
     mm.modules[0].mt = MT_SINK;
-    mm.modules[1] = module_sine_create(440 * 2 * M_PI);
-    module_manager_connect(&mm, 0, 1, 0);
+    mm.modules[0].position = (SDL_Rect) {200, 100, 50, 50};
+    mm.modules[1] = module_sine_create((SDL_Rect){0,0,50,50}, 440 * 2 * M_PI);
+    mm.modules[2] = module_sine_create((SDL_Rect){0,60,50,50}, 1 * 2 * M_PI);
+    mm.modules[3] = module_gate_create((SDL_Rect){60,60,50,50});
+    module_manager_connect(&mm, 3, 1, 0);
+    module_manager_connect(&mm, 3, 2, 1);
+    module_manager_connect(&mm, 0, 3, 0);
     return mm;
 }
 
@@ -38,13 +46,32 @@ void module_manager_connect(module_manager *mm, int parent, int child, int conne
 
 // connection number of child
 void module_manager_get_audio(module_manager *mm, int parent, int connection_number, float *buf) {
-    int combined_index = parent << MAX_CHILDREN_BITS | connection_number;
-    module *child_ptr = &mm->modules[mm->child_connections[combined_index]];
+    int connection_index = parent << MAX_CHILDREN_BITS | connection_number;
+    int child_index = mm->child_connections[connection_index];
+    module *child_ptr = &mm->modules[child_index];
     if (child_ptr->mt != MT_NONE) {
-        child_ptr->get_audio(child_ptr, mm, buf);
+        child_ptr->get_audio(mm, child_index, buf);
     } else {
         // no connection, have some zeros
         // maybe assume already 0 and return
         return;
+    }
+}
+
+void module_manager_draw(module_manager *mm, gef_context *gc) {
+    for (int i = 0; i < MAX_MODULES; i++) {
+        if (mm->modules[i].mt != MT_NONE) {
+            printf("drawing %d\n", i);
+            module *m = &mm->modules[i];
+            gef_draw_rect(gc, m->position, 50, 50, 50);
+
+            for (int j = 0; j < 1 << MAX_CHILDREN_BITS; j++) {
+                int child_index = mm->child_connections[(i << MAX_CHILDREN_BITS) + j];
+                if (child_index >= 0) {
+                    module *c = &mm->modules[child_index];
+                    gef_draw_line(gc, m->position.x, m->position.y, c->position.x, c->position.y, 255, 0, 0);
+                }
+            }
+        }
     }
 }

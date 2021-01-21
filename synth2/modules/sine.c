@@ -1,7 +1,8 @@
 #include <math.h>
 #include "sine.h"
 
-void sine_get_audio(module *m, module_manager *mm, float *buf) {
+void sine_get_audio(module_manager *mm, int m_index, float *buf) {
+    module *m = &mm->modules[m_index];
     const double sample_duration = 1.0 / mm->sample_rate;
 
     for (int i = 0; i < CHUNK_SIZE; i++) {
@@ -11,8 +12,9 @@ void sine_get_audio(module *m, module_manager *mm, float *buf) {
     }
 }
 
-module module_sine_create(double w) {
+module module_sine_create(SDL_Rect position, double w) {
     return (module) {
+        .position = position,
         .get_audio = sine_get_audio,
         .mt = MT_SINE,
         .sine = {
