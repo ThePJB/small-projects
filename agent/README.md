@@ -30,5 +30,5 @@ how to make it be performant, i thought i could with a hashmap
 but of course the dudes continually move, maybe i must just make them be tiles
 
 other obvious ones
- * game theory
- * predator prey
+ * hawks and doves
+ * https://en.wikipedia.org/wiki/Evolutionary_game_theory

@@ -8,7 +8,7 @@ typedef struct {
     int type;
 } tile;
 
-
+/*
 typedef struct {
     entity *entities;
     int num_entities;
@@ -24,3 +24,4 @@ void world_draw(world *w, gef_context *gc);
 
 void world_rule_city(world *w, int ent_idx);
 void world_rule_predator_prey(world *w, int ent_idx);
+*/

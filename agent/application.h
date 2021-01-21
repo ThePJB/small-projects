@@ -11,8 +11,10 @@ typedef struct {
 
     bool paused;
 
-    world w;
-    void (*rule)(world*, int);
+    grid g;
+    void (*init_rule)(grid);
+    void (*update_rule)(grid);
+    void (*draw_rule)(gef_context *, grid);
 
 } application;
 

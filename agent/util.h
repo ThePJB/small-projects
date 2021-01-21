@@ -11,4 +11,6 @@ uint64_t get_us();
 #define min(A,B) (A < B ? A : B)
 #define max(A,B) (A > B ? A : B)
 
+float rand_floatn(float min, float max);
+float hash_floatn(int position, float min, float max);
 float hash_intn(int position, int min, int max);

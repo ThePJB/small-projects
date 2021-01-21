@@ -4,6 +4,7 @@
 #include "world.h"
 #include "util.h"
 
+/*
 world world_init(int xres, int yres) {
     const int starting_array_size = 10;
 
@@ -151,20 +152,11 @@ void world_rule_city(world *w, int ent_idx) {
         }
     }
 }
-
 void world_rule_predator_prey(world *w, int ent_idx) {
     const int predator = 0;
     const int prey = 1;
 
-    const float pred_hunger_rate = 0.005;
-    const float pred_reproduce_above = 1;
-    const float pred_reproduce_cost = 0.5;
-    const float pred_starting_food = 0.5;
 
-    const float prey_reproduce_above = 1;
-    const float prey_reproduce_cost = 0.5;
-    const float prey_starting_food = 0.5;
-    const float prey_food_value = 0.2;
 
     entity *e = &w->entities[ent_idx];
 
@@ -223,7 +215,8 @@ void world_rule_predator_prey(world *w, int ent_idx) {
     }
 
 }
-
+*/
+/*
 void world_step(world *w, void (*rule)(world*, int)) {
     // update terrain
     for (int i = 0; i < w->terrain.w; i++) {
@@ -272,3 +265,4 @@ void world_draw(world *w, gef_context *gc) {
 
 
 }
+*/
