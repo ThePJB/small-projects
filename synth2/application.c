@@ -22,7 +22,11 @@ void application_handle_input(application *app) {
 void application_draw(application *app) {
     gef_set_colour(&app->gc, 0, 0, 0, 255);
     gef_clear(&app->gc);
-    module_manager_draw(&app->mm, &app->gc);
+
+    SDL_Point mouse_pos;
+    SDL_GetMouseState(&mouse_pos.x, &mouse_pos.y);
+
+    module_manager_draw(&app->mm, &app->gc, mouse_pos);
     gef_present(&app->gc);
 }
 

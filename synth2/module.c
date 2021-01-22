@@ -1,10 +1,12 @@
 #include <string.h>
-
 #include <math.h>
+#include <stdbool.h>
+
 #include "module.h"
 #include "sine.h"
 #include "gate.h"
 #include "gef.h"
+#include "util.h"
 
 int module_manager_rt_callback(
         const void *input_buffer_vp, 
@@ -58,11 +60,15 @@ void module_manager_get_audio(module_manager *mm, int parent, int connection_num
     }
 }
 
-void module_manager_draw(module_manager *mm, gef_context *gc) {
+void module_manager_draw(module_manager *mm, gef_context *gc, SDL_Point mouse_pos) {
     for (int i = 0; i < MAX_MODULES; i++) {
         if (mm->modules[i].mt != MT_NONE) {
-            printf("drawing %d\n", i);
             module *m = &mm->modules[i];
+            // rollover module?
+            bool module_rollover = SDL_PointInRect(&mouse_pos, &m->position);
+            if (module_rollover) {
+                gef_draw_rect(gc, rect_dilate(m->position, 2), 255, 255, 255);
+            }
             gef_draw_rect(gc, m->position, 50, 50, 50);
 
             for (int j = 0; j < 1 << MAX_CHILDREN_BITS; j++) {
@@ -70,6 +76,10 @@ void module_manager_draw(module_manager *mm, gef_context *gc) {
                 if (child_index >= 0) {
                     module *c = &mm->modules[child_index];
                     gef_draw_line(gc, m->position.x, m->position.y, c->position.x, c->position.y, 255, 0, 0);
+                    if (dist_point_line_seg(mouse_pos.x, mouse_pos.y, m->position.x, m->position.y, c->position.x, c->position.y) < 2) {
+                        gef_draw_line(gc, m->position.x, m->position.y+1, c->position.x, c->position.y+1, 255, 255, 255);
+                        gef_draw_line(gc, m->position.x, m->position.y-1, c->position.x, c->position.y-1, 255, 255, 255);
+                    }
                 }
             }
         }

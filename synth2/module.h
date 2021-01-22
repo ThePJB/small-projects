@@ -54,7 +54,7 @@ typedef struct module_manager {
 module_manager module_manager_init(uint32_t sample_rate);
 void module_manager_connect(module_manager *mm, int parent, int child, int index);
 void module_manager_get_audio(module_manager *mm, int parent, int connection_number, float *buf);
-void module_manager_draw(module_manager *mm, gef_context *gc);
+void module_manager_draw(module_manager *mm, gef_context *gc, SDL_Point mouse_pos);
 
 int module_manager_rt_callback(
         const void *input_buffer_vp, 
