@@ -1,6 +1,5 @@
 #include "predator_prey.h"
 #include "util.h"
-#include "world.h"
 
 const int grass = 0;
 const int prey = 1;
@@ -21,10 +20,12 @@ const float prey_starting_food = 0;
 const float prey_food_value = 0.2;
 const float starting_prey_chance = 0.01;
 
-void rule_predator_prey_init(grid g) {
-    for (int i = 0; i < g.w; i++) {
-        for (int j = 0; j < g.h; j++) {
-            tile t;
+void *rule_predator_prey_init(int xres, int yres) {
+    predator_prey_context *pp_context = calloc(1, sizeof(predator_prey_context));
+    pp_context->g = grid_init(sizeof(predator_prey_tile), xres, yres);
+    for (int i = 0; i < pp_context->g.w; i++) {
+        for (int j = 0; j < pp_context->g.h; j++) {
+            predator_prey_tile t;
             float r = rand_floatn(0, 1);
             if (r < starting_pred_chance) {
                 t.type = predator;
@@ -36,21 +37,23 @@ void rule_predator_prey_init(grid g) {
                 t.type = grass;
                 t.food = 0;
             }
-            grid_set(g, &t, i, j);
+            grid_set(pp_context->g, &t, i, j);
         }
     }
+    return pp_context;
 }
 
 int generation = 0;
 
-void rule_predator_prey_update(grid g) {
+void rule_predator_prey_update(void *pp_context) {
+    grid g = ((predator_prey_context*)pp_context)->g;
     int ngrass = 0;
     int npred = 0;
     int nprey = 0;
 
     for (int i = 0; i < g.w; i++) {
         for (int j = 0; j < g.h; j++) {
-            tile t;
+            predator_prey_tile t;
             grid_get(g, &t, i, j);
 
             if (t.type == grass) {
@@ -79,7 +82,7 @@ void rule_predator_prey_update(grid g) {
 
             int move_x, move_y;
             while (!grid_index_neighbour8(g, i, j, util_rand_ab(0, 8), &move_x, &move_y));
-            tile candidate;
+            predator_prey_tile candidate;
             grid_get(g, &candidate, move_x, move_y);
 
             if (t.type == prey) {
@@ -122,10 +125,11 @@ void rule_predator_prey_update(grid g) {
     printf("generation %d: %d grass, %d prey, %d pred\n", generation++, ngrass, nprey, npred);
 }
 
-void rule_predator_prey_draw(gef_context *gc, grid g) {
+void rule_predator_prey_draw(gef_context *gc, void *pp_context) {
+    grid g = ((predator_prey_context*)pp_context)->g;
     for (int i = 0; i < g.w; i++) {
         for (int j = 0; j < g.h; j++) {
-            tile t;
+            predator_prey_tile t;
             grid_get(g, &t, i, j);
 
             if (t.type == grass) {

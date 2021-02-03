@@ -32,7 +32,8 @@ gef_context gef_init(char *name, int xres, int yres, int frame_cap) {
     if (gc.renderer == NULL) gef_die(&gc, "couldn't create renderer");
 
     if (IMG_Init(IMG_INIT_PNG) != IMG_INIT_PNG) gef_die(&gc, "couldn't init SDL_img");
-
+    if (TTF_Init() == -1) gef_die(&gc, "couldn't init SDL_ttf");
+    
     return gc;
 }
 
@@ -42,6 +43,36 @@ void gef_load_atlas(gef_context *gc, char *path) {
     if (gc->atlas == NULL) gef_die(gc, "couldn't create texture");
     SDL_FreeSurface(loaded_surface);
 }
+
+font_handle gef_load_font(char *path, int size) {
+    TTF_Font *f = TTF_OpenFont(path, size);
+    return (font_handle) {
+        .gfont = f,
+    };
+}
+
+text_handle gef_make_text(gef_context *gc, font_handle f, char *text, int r, int g, int b) {
+    SDL_Surface *text_surface = TTF_RenderText_Blended(f.gfont, text, (SDL_Color){.a=255, .r=r, .g=g, .b=b});
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(gc->renderer, text_surface);
+    text_handle t = (text_handle) {
+        .texture = texture,
+        .w = text_surface->w,
+        .h = text_surface->h,
+    };
+
+    SDL_FreeSurface(text_surface);
+
+    return t;
+}
+
+void gef_draw_text(gef_context *gc, text_handle text, int x, int y) {
+    SDL_RenderCopy(gc->renderer, text.texture, NULL, &(SDL_Rect) {x, y, text.w, text.h});
+};
+
+void gef_destroy_text(text_handle text) {
+    SDL_DestroyTexture(text.texture);
+}
+
 void gef_draw_sprite(gef_context *gc, SDL_Rect clip, SDL_Rect to_rect) {
     SDL_RenderCopy(gc->renderer, gc->atlas, &clip, &to_rect);
 }

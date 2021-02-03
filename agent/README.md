@@ -32,3 +32,27 @@ but of course the dudes continually move, maybe i must just make them be tiles
 other obvious ones
  * hawks and doves
  * https://en.wikipedia.org/wiki/Evolutionary_game_theory
+ * Biham–Middleton–Levine traffic model
+  * and variants, see wikipedia
+ * Nagel–Schreckenberg model?
+
+is a func(specific ptr) able to be used as a func(void ptr)?
+
+todo: 
+ * reset button
+ * reseed button
+ * parameter struct that is able to be modified at run time with a menu
+   * maybe a function that returns for each potential index the string and also handles inc / dec
+
+
+text working, next job is menu. so maintain the cursor and list of items (growable array)
+
+menu bugs:
+ * rule starts at 73 but its actually 96 after u modify
+ * doesnt do anything
+    * i think im somewhere taking address incorrectly and with void ptr u arent protected from that lol
+ * count from 1 for keyboard numbers to select ca
+ 
+
+reset grid without resetting ur settings?
+and only modify settings if menu show
