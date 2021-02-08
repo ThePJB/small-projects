@@ -7,30 +7,15 @@ const int empty = 0;
 const int red = 1;
 const int blue = 2;
 
-const float starting_red_chance = 0.2;
-const float starting_blue_chance = 0.2;
-
-bool random_creation = false; // random sucks
-
 void *rule_traffic_jam_init(int xres, int yres) {
     traffic_jam_context *state = calloc(1, sizeof(traffic_jam_context));
+    state->starting_blue_chance = 0.19;
+    state->starting_red_chance = 0.19;
+    state->random_creation = false;
     state->g[0] = grid_init(sizeof(traffic_jam_tile), xres, yres);
     state->g[1] = grid_init(sizeof(traffic_jam_tile), xres, yres);
-    for (int i = 0; i < state->g[0].w; i++) {
-        for (int j = 0; j < state->g[0].h; j++) {
-            traffic_jam_tile t;
-            float r = rand_floatn(0, 1);
-            if (r < starting_red_chance) {
-                t.type = red;
-            } else if (r < starting_red_chance + starting_blue_chance) {
-                t.type = blue;
-            } else {
-                t.type = empty;
-            }
-            grid_set(state->g[0], &t, i, j);
-            //grid_set(state->g[1], &t, i, j);
-        }
-    }
+    rule_traffic_jam_reset(state, xres, yres);
+
     return state;
 }
 
@@ -51,14 +36,14 @@ void rule_traffic_jam_update(void *state) {
             traffic_jam_tile neighbour_tile;
             grid_get(this_g, &this_tile, i, j);
 
-            if (random_creation && i == 0) {
-                if (rand_floatn(0, 1) < starting_blue_chance) {
+            if (tjc->random_creation && i == 0) {
+                if (rand_floatn(0, 1) < tjc->starting_blue_chance) {
                     this_tile.type = blue;
                 } else {
                     this_tile.type = empty;
                 }
-            } else if (random_creation && j == 0) {
-                if (rand_floatn(0, 1) < starting_red_chance) {
+            } else if (tjc->random_creation && j == 0) {
+                if (rand_floatn(0, 1) < tjc->starting_red_chance) {
                     this_tile.type = red;
                 } else {
                     this_tile.type = empty;
@@ -84,7 +69,7 @@ void rule_traffic_jam_update(void *state) {
                 if (blue_turn) {
                     int nx = (i+1)%this_g.w;
                     grid_get(this_g, &neighbour_tile, nx, j);
-                    if ((random_creation && nx == 0) || neighbour_tile.type == empty) {
+                    if ((tjc->random_creation && nx == 0) || neighbour_tile.type == empty) {
                         this_tile.type = empty;
                     }
                 }
@@ -93,7 +78,7 @@ void rule_traffic_jam_update(void *state) {
                 if (!blue_turn) {
                     int ny = (j+1)%this_g.h;
                     grid_get(this_g, &neighbour_tile, i, ny);
-                    if ((random_creation && ny == 0) || neighbour_tile.type == empty) {
+                    if ((tjc->random_creation && ny == 0) || neighbour_tile.type == empty) {
                         this_tile.type = empty;
                     }
                 }
@@ -122,5 +107,55 @@ void rule_traffic_jam_draw(gef_context *gc, void *state) {
                 gef_put_pixel(gc, 255, 0, 0, 255, i, j);
             }
         }
+    }
+}
+
+void rule_traffic_jam_reset(void *state, int xres, int yres) {
+    traffic_jam_context *tjc = (traffic_jam_context*)state;
+
+    for (int i = 0; i < tjc->g[0].w; i++) {
+        for (int j = 0; j < tjc->g[0].h; j++) {
+            traffic_jam_tile t;
+            float r = rand_floatn(0, 1);
+            if (r < tjc->starting_red_chance) {
+                t.type = red;
+            } else if (r < tjc->starting_red_chance + tjc->starting_blue_chance) {
+                t.type = blue;
+            } else {
+                t.type = empty;
+            }
+            grid_set(tjc->g[0], &t, i, j);
+        }
+    }
+}
+
+bool rule_traffic_jam_menu_str(void *state, int index, char *buf) {
+    traffic_jam_context *tjc = (traffic_jam_context*)state;
+
+    if (index == 0) {
+        sprintf(buf, "red %% %.3f", tjc->starting_red_chance);
+        return true;
+    } else if (index == 1) {
+        sprintf(buf, "blue %% %.3f", tjc->starting_blue_chance);
+        return true;
+    } else if (index == 2) {
+        sprintf(buf, "do random %s", tjc->random_creation ? "true" : "false");
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void rule_traffic_jam_menu_succ(void *state, int index, bool up) {
+    traffic_jam_context *tjc = (traffic_jam_context*)state;
+
+    float direction_sign = up ? 1 : -1;
+
+    if (index == 0) {
+        tjc->starting_red_chance += 0.001 * direction_sign;
+    } else if (index == 1) {
+        tjc->starting_blue_chance += 0.001 * direction_sign;
+    } else if (index == 2) {
+        tjc->random_creation = up;
     }
 }

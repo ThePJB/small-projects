@@ -56,3 +56,16 @@ menu bugs:
 
 reset grid without resetting ur settings?
 and only modify settings if menu show
+
+links
+-----
+https://en.wikipedia.org/wiki/Elementary_cellular_automaton for other cool elementary CAs to check out
+https://en.wikipedia.org/wiki/Cyclic_cellular_automaton
+
+
+-----------
+
+todos tidy up readme
+windows build?
+playback speed
+zoom

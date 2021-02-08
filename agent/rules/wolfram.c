@@ -3,7 +3,7 @@
 
 // nb 30 chaos
 // nb 110 turing complete
-// nb 90 sierpinski triangle
+// nb 90 sierpinski triangle, its also awesome with a messy input
 // nb 102 right sierpinski triangle
 // 105 forest with buildings
 // around 99 gets some cool mc escher if u go between

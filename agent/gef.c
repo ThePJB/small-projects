@@ -53,24 +53,30 @@ font_handle gef_load_font(char *path, int size) {
 
 text_handle gef_make_text(gef_context *gc, font_handle f, char *text, int r, int g, int b) {
     SDL_Surface *text_surface = TTF_RenderText_Blended(f.gfont, text, (SDL_Color){.a=255, .r=r, .g=g, .b=b});
+    SDL_Surface *text_shadow_surface = TTF_RenderText_Blended(f.gfont, text, (SDL_Color){.a=255, .r=0, .g=0, .b=0});
     SDL_Texture *texture = SDL_CreateTextureFromSurface(gc->renderer, text_surface);
+    SDL_Texture *texture_shadow = SDL_CreateTextureFromSurface(gc->renderer, text_shadow_surface);
     text_handle t = (text_handle) {
         .texture = texture,
+        .texture_shadow = texture_shadow,
         .w = text_surface->w,
         .h = text_surface->h,
     };
 
     SDL_FreeSurface(text_surface);
+    
 
     return t;
 }
 
 void gef_draw_text(gef_context *gc, text_handle text, int x, int y) {
+    SDL_RenderCopy(gc->renderer, text.texture_shadow, NULL, &(SDL_Rect) {x+2, y+2, text.w, text.h});
     SDL_RenderCopy(gc->renderer, text.texture, NULL, &(SDL_Rect) {x, y, text.w, text.h});
 };
 
 void gef_destroy_text(text_handle text) {
     SDL_DestroyTexture(text.texture);
+    SDL_DestroyTexture(text.texture_shadow);
 }
 
 void gef_draw_sprite(gef_context *gc, SDL_Rect clip, SDL_Rect to_rect) {

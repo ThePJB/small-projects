@@ -22,7 +22,6 @@ void menu_scroll(menu *m, bool up) {
         m->current_selection = min(m->current_selection + 1, m->num_items-1);
     }
 }
-// just changing selection and bounds clamping it
 
 void menu_edit(menu *m, gef_context *gc, bool next, 
         void *state, 
@@ -49,7 +48,7 @@ void menu_populate(menu *m, gef_context *gc, void *state,
     char buf[128] = {0};
     int i = 0;
     while (menu_str(state, i++, buf)) {
-        m->entries[m->current_selection] = gef_make_text(gc, m->font, buf, 255, 255, 255);
+        m->entries[i-1] = gef_make_text(gc, m->font, buf, 255, 255, 255);
         m->num_items++;
     }
 }

@@ -11,11 +11,17 @@ const rule rules[] = {
         .draw = rule_predator_prey_draw,
         .init = rule_predator_prey_init,
         .update = rule_predator_prey_update,
+        .menu_succ = rule_predator_prey_menu_succ,
+        .menu_str = rule_predator_prey_menu_str,
+        .reset = rule_predator_prey_reset,
     },
     (rule) {
         .draw = rule_traffic_jam_draw,
         .init = rule_traffic_jam_init,
         .update = rule_traffic_jam_update,
+        .menu_succ = rule_traffic_jam_menu_succ,
+        .menu_str = rule_traffic_jam_menu_str,
+        .reset = rule_traffic_jam_reset,
     },
     (rule) {
         .draw = rule_wolfram_draw,
@@ -63,8 +69,9 @@ void application_handle_input(application *app) {
                 menu_scroll(&app->menu, false);
             } else if (sym == SDLK_k) {
                 menu_scroll(&app->menu, true);
-            } else if (sym >= SDLK_0 && sym <= SDLK_9) {
-                int i = sym - SDLK_0;
+            } else if (sym >= SDLK_1 && sym <= SDLK_9) {
+                app->menu.current_selection = 0;
+                int i = sym - SDLK_1;
                 if (i == app->current_rule_idx) {
                     app->current_rule.reset(app->simulation_state, app->xres, app->yres);
                 } else {
@@ -107,7 +114,7 @@ application application_init() {
 
     srand(1234567);
 
-    const int start_rule_idx = 3;
+    const int start_rule_idx = 0;
 
     application app = (application) {
         .xres = xres,

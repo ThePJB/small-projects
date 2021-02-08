@@ -24,6 +24,7 @@ typedef struct {
 
 typedef struct {
     SDL_Texture *texture;
+    SDL_Texture *texture_shadow;
     int w;
     int h;
 } text_handle;
