@@ -13,6 +13,8 @@ dgl_context::dgl_context(int starting_xres, int starting_yres) {
         dgl_fatal("failed initing SDL");
     }
 
+    SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
+
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 
@@ -22,6 +24,10 @@ dgl_context::dgl_context(int starting_xres, int starting_yres) {
     // msaa
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
+
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+    SDL_SetRelativeMouseMode(SDL_TRUE);
 
     window = SDL_CreateWindow("island3d",
         SDL_WINDOWPOS_CENTERED,

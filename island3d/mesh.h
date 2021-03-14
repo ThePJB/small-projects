@@ -5,6 +5,9 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#include "dankgl.h"
+#include "vla.h"
+
 using glm::mat4;
 
 template<typename V>
