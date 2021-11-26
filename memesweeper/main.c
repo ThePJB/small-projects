@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     // game settings
     int game_w = 12;
     int game_h = 12;
-    int n_bombs = 130;
+    int n_bombs = 40;
     
     gef_init();
     gef_set_res(720, 720);
